@@ -22,8 +22,14 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-      - name: docker build
-        run: docker-compose up
+      - name: Setup
+        run: |
+          sudo -s
+          ./setup_env.sh
+          pip install --upgrade -r pip-requirements.txt
+      - name: Build
+        run: |
+          ./build_uefi_atoll.sh -d xiaomi-sweet
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
