@@ -2,7 +2,7 @@
 
 ### Thanks for [Gustave](https://github.com/gus33000)'s instructions!
 
-# [Project Mu](https://microsoft.github.io/mu/) UEFI Implementation for SM8150 & SM7125 Devices
+# [Project Mu](https://microsoft.github.io/mu/) UEFI Implementation for Devices on Snapdragon™ Platforms.
 
 ## Build ![ActionStatus](https://img.shields.io/github/actions/workflow/status/woa-msmnile/msmnilepkg/main.yml)
 
@@ -54,6 +54,11 @@ docker run -it mu:v1 -v ./:/build/
   ./build_uefi_atoll.sh -d <target-name>
   ```
 
+- For sm7325:
+  ```
+  ./build_uefi_kodiak.sh -d <target-name>
+  ```
+
 - For sm8550:
   ```
   ./build_uefi_kailua.sh -d <target-name>
@@ -88,7 +93,7 @@ docker run -it mu:v1 -v ./:/build/
 | OnePlus 7T Pro 5G  | oneplus-hotdogg        | ✅              | NONE                                               |
 | OPPO Reno 10X      | oppo-op46c3            | ❌              | NONE                                               |
 | OPPO Reno ACE      | oppo-pclm10            | ✅              | [sunflower2333](https://github.com/sunflower2333)  |
-| Qcom QRD 855       | qcom-msmnile           | ✅              | not sunflower2333                                  |
+| Qcom QRD 855       | qcom-msmnile           | ✅              | sunflower2333                                      |
 | Realme X3          | realme-rmx2086         | ❌              | NONE                                               |
 | Samsung Galaxy S10 | samsung-beyond1qlte    | ✅              | [Ww](https://github.com/Idonotkno)                 |
 | Smartisan Pro 3    | smartisan-aries        | ❌              | NONE                                               |
@@ -105,8 +110,9 @@ docker run -it mu:v1 -v ./:/build/
 
 | Device             | Target name            | DSDT Support    | Maintainers                                        |
 |--------------------|------------------------|-----------------|----------------------------------------------------|
-| Qcom QRD 720       | qcom-atoll             | ✅              | not sunflower2333                                  |
+| Qcom QRD 720       | qcom-atoll             | ✅              | sunflower2333                                      |
 | Xiaomi Note 9S     | xiaomi-miatoll         | ❌              | Icesito                                            |
+| Xiaomi Note 10 Pro | xiaomi-sweet           | ❌              | [dopaemon](https://github.com/dopaemon)            |
 
 
 ### *SM7325*
@@ -117,21 +123,66 @@ docker run -it mu:v1 -v ./:/build/
 
 
 ### *SM8550*
+> Comming soon...  
 
 | Device             | Target name            | Support         | Maintainers                                        |
 |--------------------|------------------------|-----------------|----------------------------------------------------|
-| Nubia RedMagic 8Pro| nubia-nx729j           | ❌              | None                                               |
+| Nubia RedMagic 8Pro| nubia-nx729j           | ❌              | BigfootACA                                         |
 
 ## Acknowledgements
 
+- Gustave Monce and his [SurfaceDuoPkg](https://github.com/Woa-Project/SurfaceDuoPkg/)
 - Andrei Warkentin and his [RaspberryPiPkg](https://github.com/andreiw/RaspberryPiPkg)
 - Sarah Purohit
 - [Googulator](https://github.com/Googulator/)
 - [Ben (Bingxing) Wang](https://github.com/imbushuo/)
 - Samuel Tulach and his [Rainbow Patcher](https://github.com/SamuelTulach/rainbow)
+- BigfootACA and his [SimpleInit](https://github.com/BigfootACA/simple-init)
 - [Renegade Project](https://github.com/edk2-porting/)
 - Lemon ICE
 
 ## License ![License](https://img.shields.io/github/license/woa-msmnile/msmnilePkg)
 All code except drivers in `GPLDriver` directory are licensed under BSD 2-Clause.  
 GPL Drivers are licensed under GPLv2 license.
+
+
+## Boot Chain
+```mermaid
+flowchart TD
+  subgraph fake_kernel[Fake Kernel]
+
+    subgraph bootshim[Boot Shim]
+      kernel_header[ARM64 Magic]
+      copy_fd[Copy UefiFD to stack base]
+      save_args[Save needed arguments to registers]
+      jump[jump to uefi fd base]
+    end
+
+    subgraph uefi[Uefi]
+      subgraph platform_prepi_lib[PlatformPrePiLib]
+        is_linux_boot_requested{IsLinuxBootRequested}
+      end
+      continue_uefi[Continue Booting Uefi]
+    end
+    subgraph kernel[Linux Kernel]
+      linux_kernel[Kernel]
+    end
+  end
+  
+  subgraph hlos[HLOS]
+    android[Android]
+    linux[Linux]
+    windows[Windows]
+    etc[...]
+  end
+
+  kernel_header --> copy_fd --> save_args --> jump --> platform_prepi_lib
+  platform_prepi_lib --> is_linux_boot_requested
+  is_linux_boot_requested -- True --> linux_kernel
+  is_linux_boot_requested -- False --> continue_uefi
+  continue_uefi --> linux
+  linux_kernel --> linux
+  linux_kernel --> android
+  continue_uefi --> windows
+  fake_kernel ==> hlos
+```
